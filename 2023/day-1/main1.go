@@ -8,17 +8,17 @@ import (
 	"strings"
 )
 
-func findCalibrationValue(line string) int {
+func findCalibrationValuePart1(line string) int {
 	re := regexp.MustCompile(`\d`)
 	matches := re.FindAllString(line, -1)
 
-	firstDigit, _ := strconv.Atoi((matches[0]))
+	firstDigit, _ := strconv.Atoi(matches[0])
 	lastDigit, _ := strconv.Atoi(matches[len(matches)-1])
 
 	return firstDigit*10 + lastDigit
 }
 
-func calculateTotal(filename string) (int, error) {
+func calculateTotalPart1(filename string) (int, error) {
 	data, err := os.ReadFile(filename)
 
 	if err != nil {
@@ -30,7 +30,7 @@ func calculateTotal(filename string) (int, error) {
 
 	for _, line := range lines {
 		if line != "" {
-			total += findCalibrationValue(line)
+			total += findCalibrationValuePart1(line)
 		}
 	}
 
@@ -40,7 +40,7 @@ func calculateTotal(filename string) (int, error) {
 func main() {
 	filename := "input.txt"
 
-	total, err := calculateTotal(filename)
+	total, err := calculateTotalPart1(filename)
 
 	if err != nil {
 		fmt.Println("Error: Failure", err)

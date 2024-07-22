@@ -19,7 +19,7 @@ var digitMap = map[string]int{
 	"nine":  9,
 }
 
-func findCalibrationValue(line string) int {
+func findCalibrationValuePart2(line string) int {
 	// Create a slice to store the indices and values of all digits found
 	type digit struct {
 		value int
@@ -54,7 +54,7 @@ func findCalibrationValue(line string) int {
 	return 0 // If no digits are found
 }
 
-func calculateTotal(filename string) (int, error) {
+func calculateTotalPart2(filename string) (int, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return 0, err
@@ -64,7 +64,7 @@ func calculateTotal(filename string) (int, error) {
 	total := 0
 	for _, line := range lines {
 		if line != "" {
-			total += findCalibrationValue(line)
+			total += findCalibrationValuePart2(line)
 		}
 	}
 	return total, nil
@@ -73,7 +73,7 @@ func calculateTotal(filename string) (int, error) {
 func main() {
 	filename := "input.txt" // Replace with your actual input file
 
-	total, err := calculateTotal(filename)
+	total, err := calculateTotalPart2(filename)
 	if err != nil {
 		fmt.Println("Error reading file:", err)
 		return
