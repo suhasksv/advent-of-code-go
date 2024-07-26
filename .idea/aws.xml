@@ -9,6 +9,6 @@
     </option>
   </component>
   <component name="connectionManager">
-    <option name="activeConnectionId" value="sso-session:codecatalyst" />
+    <option name="activeConnectionId" value="sso;us-east-1;https://view.awsapps.com/start" />
   </component>
 </project>
