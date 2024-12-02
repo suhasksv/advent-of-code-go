@@ -22,6 +22,7 @@ def sum_part_numbers(schematic):
 
     return total_sum
 
+
 # Get the file path to your engine schematic
 file_path = "input.txt"  # Replace with the actual file path
 
