@@ -2,7 +2,7 @@
 <module type="WEB_MODULE" version="4">
   <component name="FacetManager">
     <facet type="Python" name="Python">
-      <configuration sdkName="Python 3.11" />
+      <configuration sdkName="Unknown" />
     </facet>
   </component>
   <component name="Go" enabled="true" />
@@ -19,6 +19,6 @@
     <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Dart SDK" level="project" />
-    <orderEntry type="library" name="Python 3.11 interpreter library" level="application" />
+    <orderEntry type="library" name="Unknown interpreter library" level="application" />
   </component>
 </module>
