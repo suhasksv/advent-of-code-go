@@ -1,6 +1,84 @@
+# # from collections import deque
+# # import itertools
+# #
+# # def parse_map(map_lines):
+# #     grid = []
+# #     start = end = None
+# #     for r, line in enumerate(map_lines):
+# #         grid.append(list(line))
+# #         for c, char in enumerate(line):
+# #             if char == 'S':
+# #                 start = (r, c)
+# #             elif char == 'E':
+# #                 end = (r, c)
+# #     return grid, start, end
+# #
+# # def bfs(grid, start, end):
+# #     rows, cols = len(grid), len(grid[0])
+# #     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+# #     visited = set()
+# #     queue = deque([(start[0], start[1], 0)])  # (row, col, time)
+# #
+# #     while queue:
+# #         r, c, time = queue.popleft()
+# #         if (r, c) == end:
+# #             return time
+# #         if (r, c) in visited:
+# #             continue
+# #         visited.add((r, c))
+# #
+# #         for dr, dc in directions:
+# #             nr, nc = r + dr, c + dc
+# #             if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != '#':
+# #                 queue.append((nr, nc, time + 1))
+# #
+# #     return float('inf')  # No path found
+# #
+# # def simulate_cheats(grid, start, end):
+# #     rows, cols = len(grid), len(grid[0])
+# #     track_positions = [(r, c) for r in range(rows) for c in range(cols) if grid[r][c] in {'.', 'S', 'E'}]
+# #
+# #     normal_time = bfs(grid, start, end)
+# #     cheats = []
+# #
+# #     for (r1, c1), (r2, c2) in itertools.combinations(track_positions, 2):
+# #         # Simulate a cheat
+# #         cheat_grid = [row[:] for row in grid]
+# #         dr = abs(r1 - r2)
+# #         dc = abs(c1 - c2)
+# #
+# #         if dr + dc <= 2:  # Cheating for at most 2 steps
+# #             cheat_grid[r1][c1] = '.'  # Start of cheat
+# #             cheat_grid[r2][c2] = '.'  # End of cheat
+# #             cheat_time = bfs(cheat_grid, start, end)
+# #             if cheat_time < normal_time:
+# #                 time_saved = normal_time - cheat_time
+# #                 cheats.append(time_saved)
+# #
+# #     return bfs(modified_grid, start, end)
+# #
+# # def count_large_cheats(grid, start, end, threshold):
+# #     potential_cheats = []  # Find potential cheat positions
+# #     # ...
+# #
+# #     count = 0
+# #     for start_cheat, end_cheat in potential_cheats:
+# #         time_saved = bfs(grid, start, end) - simulate_cheat(grid, start_cheat, end_cheat)
+# #         if time_saved >= threshold:
+# #             count += 1
+# #     return count
+# #
+# # # Read input from a file
+# # with open('input.txt', 'r') as file:
+# #     map_lines = file.read().splitlines()
+# #
+# # grid, start, end = parse_map(map_lines)
+# # result = count_large_cheats(grid, start, end, 100)
+# # print(f"Shortest path from start to end (no cheats): {result1}")
+
 # from collections import deque
-# import itertools
-#
+# from itertools import product
+
 # def parse_map(map_lines):
 #     grid = []
 #     start = end = None
@@ -12,143 +90,155 @@
 #             elif char == 'E':
 #                 end = (r, c)
 #     return grid, start, end
-#
-# def bfs(grid, start, end):
+
+# def multi_source_bfs(grid, start):
 #     rows, cols = len(grid), len(grid[0])
 #     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-#     visited = set()
-#     queue = deque([(start[0], start[1], 0)])  # (row, col, time)
-#
+#     distances = {}
+#     queue = deque([(start, 0)])
+
 #     while queue:
-#         r, c, time = queue.popleft()
-#         if (r, c) == end:
-#             return time
-#         if (r, c) in visited:
+#         (r, c), dist = queue.popleft()
+#         if (r, c) in distances:
 #             continue
-#         visited.add((r, c))
-#
+#         distances[(r, c)] = dist
 #         for dr, dc in directions:
 #             nr, nc = r + dr, c + dc
-#             if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != '#':
-#                 queue.append((nr, nc, time + 1))
-#
-#     return float('inf')  # No path found
-#
-# def simulate_cheats(grid, start, end):
-#     rows, cols = len(grid), len(grid[0])
-#     track_positions = [(r, c) for r in range(rows) for c in range(cols) if grid[r][c] in {'.', 'S', 'E'}]
-#
-#     normal_time = bfs(grid, start, end)
+#             if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] in {'.', 'S', 'E'}:
+#                 queue.append(((nr, nc), dist + 1))
+
+#     return distances
+
+# def simulate_cheats(grid, start, end, distances):
 #     cheats = []
-#
-#     for (r1, c1), (r2, c2) in itertools.combinations(track_positions, 2):
-#         # Simulate a cheat
-#         cheat_grid = [row[:] for row in grid]
-#         dr = abs(r1 - r2)
-#         dc = abs(c1 - c2)
-#
-#         if dr + dc <= 2:  # Cheating for at most 2 steps
-#             cheat_grid[r1][c1] = '.'  # Start of cheat
-#             cheat_grid[r2][c2] = '.'  # End of cheat
-#             cheat_time = bfs(cheat_grid, start, end)
-#             if cheat_time < normal_time:
-#                 time_saved = normal_time - cheat_time
-#                 cheats.append(time_saved)
-#
-#     return bfs(modified_grid, start, end)
-#
-# def count_large_cheats(grid, start, end, threshold):
-#     potential_cheats = []  # Find potential cheat positions
-#     # ...
-#
-#     count = 0
-#     for start_cheat, end_cheat in potential_cheats:
-#         time_saved = bfs(grid, start, end) - simulate_cheat(grid, start_cheat, end_cheat)
-#         if time_saved >= threshold:
-#             count += 1
-#     return count
-#
+#     rows, cols = len(grid), len(grid[0])
+#     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+#     normal_time = distances.get(end, float('inf'))
+
+#     print(f"Normal time from start to end: {normal_time}")
+#     if normal_time == float('inf'):
+#         print("No valid path found from start to end.")
+#         return cheats
+
+#     for r in range(rows):
+#         for c in range(cols):
+#             if grid[r][c] == '#':  # Only consider walls
+#                 for dr1, dc1 in directions:
+#                     nr1, nc1 = r + dr1, c + dc1
+#                     for dr2, dc2 in directions:
+#                         nr2, nc2 = r + dr2, c + dc2
+
+#                         if (0 <= nr1 < rows and 0 <= nc1 < cols and grid[nr1][nc1] in {'.', 'S', 'E'} and
+#                                 0 <= nr2 < rows and 0 <= nc2 < cols and grid[nr2][nc2] in {'.', 'S', 'E'}):
+#                             cheat_time = (distances.get((nr1, nc1), float('inf')) +
+#                                           1 +  # Bypass the wall
+#                                           distances.get((nr2, nc2), float('inf')))
+#                             if cheat_time < normal_time:
+#                                 time_saved = normal_time - cheat_time
+#                                 cheats.append(time_saved)
+#                                 print(f"Cheat: From {(nr1, nc1)} through {(r, c)} to {(nr2, nc2)}, saves {time_saved} picoseconds.")
+
+#     return cheats
+
+# def count_large_cheats(cheats, threshold):
+#     return sum(1 for cheat in cheats if cheat >= threshold)
+
 # # Read input from a file
 # with open('input.txt', 'r') as file:
 #     map_lines = file.read().splitlines()
-#
+
 # grid, start, end = parse_map(map_lines)
-# result = count_large_cheats(grid, start, end, 100)
-# print(f"Shortest path from start to end (no cheats): {result1}")
+# distances = multi_source_bfs(grid, start)
+# cheats = simulate_cheats(grid, start, end, distances)
+# result = count_large_cheats(cheats, 100)
+# print(f"Number of cheats saving at least 100 picoseconds: {result}")
 
 from collections import deque
-from itertools import product
 
-def parse_map(map_lines):
-    grid = []
-    start = end = None
-    for r, line in enumerate(map_lines):
-        grid.append(list(line))
-        for c, char in enumerate(line):
-            if char == 'S':
-                start = (r, c)
-            elif char == 'E':
-                end = (r, c)
-    return grid, start, end
+# Directions for movement (up, down, left, right)
+DIRECTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-def multi_source_bfs(grid, start):
-    rows, cols = len(grid), len(grid[0])
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    distances = {}
-    queue = deque([(start, 0)])
+def bfs(grid, start, end, allow_cheat=False):
+    """ Performs a BFS search on the grid to find the shortest path from start to end.
+    If allow_cheat is True, we allow moving through walls for 2 picoseconds. """
+    n, m = len(grid), len(grid[0])
+    visited = [[False] * m for _ in range(n)]
+    queue = deque([(start[0], start[1], 0, False)])  # (row, col, time, cheating_used)
+    visited[start[0]][start[1]] = True
 
     while queue:
-        (r, c), dist = queue.popleft()
-        if (r, c) in distances:
-            continue
-        distances[(r, c)] = dist
-        for dr, dc in directions:
+        r, c, time, cheated = queue.popleft()
+
+        # If we reach the end, return the time taken
+        if (r, c) == end:
+            return time
+        
+        # Explore all 4 directions
+        for dr, dc in DIRECTIONS:
             nr, nc = r + dr, c + dc
-            if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] in {'.', 'S', 'E'}:
-                queue.append(((nr, nc), dist + 1))
+            if 0 <= nr < n and 0 <= nc < m and not visited[nr][nc]:
+                if grid[nr][nc] == '.' or (allow_cheat and grid[nr][nc] == '#'):
+                    # If we're allowing cheats and we encounter a wall, we can "cheat"
+                    if grid[nr][nc] == '#':
+                        if not cheated:  # We can only cheat once
+                            visited[nr][nc] = True
+                            queue.append((nr, nc, time + 1, True))  # Move with cheat
+                    else:
+                        visited[nr][nc] = True
+                        queue.append((nr, nc, time + 1, cheated))  # Move normally
+    return float('inf')  # No path found
 
-    return distances
+def find_cheat_savings(grid, start, end):
+    """ For each possible cheat path, compute the time saved. """
+    n, m = len(grid), len(grid[0])
+    cheat_savings = []
+    
+    # Try cheating from every wall position
+    for r in range(n):
+        for c in range(m):
+            if grid[r][c] == '#':
+                # Try to cheat from (r, c) and save time if possible
+                # Temporarily treat this wall as passable and run BFS with a cheat
+                grid[r][c] = '.'  # Turn wall into track
+                time_with_cheat = bfs(grid, start, end, allow_cheat=True)
+                grid[r][c] = '#'  # Restore wall
+                
+                # Calculate the time saved by cheating
+                time_without_cheat = bfs(grid, start, end, allow_cheat=False)
+                time_saved = time_without_cheat - time_with_cheat
+                if time_saved > 0:
+                    cheat_savings.append(time_saved)
+    
+    return cheat_savings
 
-def simulate_cheats(grid, start, end, distances):
-    cheats = []
-    rows, cols = len(grid), len(grid[0])
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    normal_time = distances.get(end, float('inf'))
 
-    print(f"Normal time from start to end: {normal_time}")
-    if normal_time == float('inf'):
-        print("No valid path found from start to end.")
-        return cheats
+def count_cheats_saving_at_least_100(grid, start, end):
+    """ Counts how many cheats save at least 100 picoseconds. """
+    cheat_savings = find_cheat_savings(grid, start, end)
+    count = sum(1 for save in cheat_savings if save >= 100)
+    return count
 
-    for r in range(rows):
-        for c in range(cols):
-            if grid[r][c] == '#':  # Only consider walls
-                for dr1, dc1 in directions:
-                    nr1, nc1 = r + dr1, c + dc1
-                    for dr2, dc2 in directions:
-                        nr2, nc2 = r + dr2, c + dc2
+# Read the input and prepare the grid
+def read_input(file_path):
+    with open(file_path, 'r') as f:
+        grid = [list(line.strip()) for line in f.readlines()]
+    
+    # Find the positions of 'S' and 'E'
+    start = None
+    end = None
+    for r in range(len(grid)):
+        for c in range(len(grid[r])):
+            if grid[r][c] == 'S':
+                start = (r, c)
+            elif grid[r][c] == 'E':
+                end = (r, c)
+    
+    return grid, start, end
 
-                        if (0 <= nr1 < rows and 0 <= nc1 < cols and grid[nr1][nc1] in {'.', 'S', 'E'} and
-                                0 <= nr2 < rows and 0 <= nc2 < cols and grid[nr2][nc2] in {'.', 'S', 'E'}):
-                            cheat_time = (distances.get((nr1, nc1), float('inf')) +
-                                          1 +  # Bypass the wall
-                                          distances.get((nr2, nc2), float('inf')))
-                            if cheat_time < normal_time:
-                                time_saved = normal_time - cheat_time
-                                cheats.append(time_saved)
-                                print(f"Cheat: From {(nr1, nc1)} through {(r, c)} to {(nr2, nc2)}, saves {time_saved} picoseconds.")
+# Main program execution
+file_path = 'input.txt'  # Adjust this path based on your setup
+grid, start, end = read_input(file_path)
 
-    return cheats
-
-def count_large_cheats(cheats, threshold):
-    return sum(1 for cheat in cheats if cheat >= threshold)
-
-# Read input from a file
-with open('input.txt', 'r') as file:
-    map_lines = file.read().splitlines()
-
-grid, start, end = parse_map(map_lines)
-distances = multi_source_bfs(grid, start)
-cheats = simulate_cheats(grid, start, end, distances)
-result = count_large_cheats(cheats, 100)
+# Count the cheats that save at least 100 picoseconds
+result = count_cheats_saving_at_least_100(grid, start, end)
 print(f"Number of cheats saving at least 100 picoseconds: {result}")
