@@ -1,0 +1,180 @@
+import sys
+import os
+import re
+from fractions import Fraction
+import math
+
+def solve_part_two(filename):
+    if not os.path.exists(filename):
+        print(f"Error: {filename} not found.")
+        return
+
+    total_min_presses = 0
+    machines_processed = 0
+
+    with open(filename, 'r') as f:
+        for line_num, line in enumerate(f):
+            line = line.strip()
+            if not line:
+                continue
+
+            # --- 1. Parse Input ---
+
+            # Extract Target Joltages {3,5,4,7}
+            target_match = re.search(r'\{([\d,]+)\}', line)
+            if not target_match:
+                continue
+            targets = [int(x) for x in target_match.group(1).split(',')]
+            num_counters = len(targets)
+
+            # Extract Buttons (1,3) (2) ...
+            # We treat each button as a column in our matrix
+            button_matches = re.findall(r'\(([\d,]+)\)', line)
+
+            # Build the Matrix A (cols = buttons, rows = counters)
+            # and Vector b (targets)
+            num_buttons = len(button_matches)
+            matrix = [[0] * (num_buttons + 1) for _ in range(num_counters)]
+
+            for col_idx, b_str in enumerate(button_matches):
+                indices = [int(x) for x in b_str.split(',')]
+                for row_idx in indices:
+                    if row_idx < num_counters:
+                        matrix[row_idx][col_idx] = 1
+
+            # Augment matrix with targets in the last column
+            for i in range(num_counters):
+                matrix[i][num_buttons] = targets[i]
+
+            # --- 2. Gaussian Elimination ---
+            # Use Fractions to avoid floating point issues
+            # Convert everything to Fraction
+            m = [[Fraction(x, 1) for x in row] for row in matrix]
+            rows = num_counters
+            cols = num_buttons
+
+            pivot_row = 0
+            pivots = [-1] * rows # Stores which column is the pivot for this row
+            pivot_cols = [-1] * cols # Stores which row is the pivot for this col
+
+            # Forward Elimination
+            for col in range(cols):
+                if pivot_row >= rows:
+                    break
+
+                # Find best pivot
+                sel = pivot_row
+                while sel < rows and m[sel][col] == 0:
+                    sel += 1
+
+                if sel == rows:
+                    continue # No pivot in this column
+
+                # Swap rows
+                m[pivot_row], m[sel] = m[sel], m[pivot_row]
+
+                # Normalize row
+                val = m[pivot_row][col]
+                for j in range(col, cols + 1):
+                    m[pivot_row][j] /= val
+
+                # Eliminate other rows
+                for i in range(rows):
+                    if i != pivot_row:
+                        v = m[i][col]
+                        if v != 0:
+                            for j in range(col, cols + 1):
+                                m[i][j] -= v * m[pivot_row][j]
+
+                pivots[pivot_row] = col
+                pivot_cols[col] = pivot_row
+                pivot_row += 1
+
+            # --- 3. Solve for Variables ---
+            # Identify Free Variables vs Pivot Variables
+            free_vars = []
+            pivot_vars = []
+
+            for c in range(cols):
+                if pivot_cols[c] == -1:
+                    free_vars.append(c)
+                else:
+                    pivot_vars.append(c)
+
+            # If no free variables, the solution is unique (or non-existent)
+            # If free variables exist, we must search for the best combination.
+
+            min_presses_for_machine = float('inf')
+
+            # Determine bounds for search.
+            # In this puzzle, variables are non-negative.
+            # A safe heuristic upper bound is the max target value (since adding only increases)
+            # We iterate free variables recursively.
+
+            # If there are too many free vars, this could be slow, but usually AoC has few degrees of freedom.
+            limit = max(targets) if targets else 0
+
+            def solve_recursive(idx, current_free_vals):
+                nonlocal min_presses_for_machine
+
+                # Base case: All free variables assigned
+                if idx == len(free_vars):
+                    # Calculate Pivot Variables based on Free Variables
+                    current_presses = sum(current_free_vals)
+                    valid = True
+
+                    # Check equations to resolve pivots
+                    # RREF Equation: x_pivot + sum(k * x_free) = constant
+                    # => x_pivot = constant - sum(k * x_free)
+
+                    for r in range(rows):
+                        p_col = pivots[r]
+                        if p_col == -1:
+                            # Check for inconsistency: 0 = constant ?
+                            if m[r][cols] != 0:
+                                valid = False
+                            continue
+
+                        val = m[r][cols] # Constant
+
+                        # Subtract free variable contributions
+                        for f_idx, f_col in enumerate(free_vars):
+                            coeff = m[r][f_col]
+                            val -= coeff * current_free_vals[f_idx]
+
+                        # Val must be non-negative integer
+                        if val.denominator != 1 or val < 0:
+                            valid = False
+                            break
+
+                        current_presses += int(val)
+
+                    if valid:
+                        min_presses_for_machine = min(min_presses_for_machine, current_presses)
+                    return
+
+                # Recursive Step
+                # Optimization: Stop if we already exceed found min
+                if sum(current_free_vals) >= min_presses_for_machine:
+                    return
+
+                # Iterate this free variable
+                # We try range 0 to limit.
+                # (For very complex inputs, we'd need a better bound, but this works for typical puzzles)
+                for val in range(limit + 1):
+                    current_free_vals.append(val)
+                    solve_recursive(idx + 1, current_free_vals)
+                    current_free_vals.pop()
+
+            solve_recursive(0, [])
+
+            if min_presses_for_machine != float('inf'):
+                total_min_presses += min_presses_for_machine
+                machines_processed += 1
+            else:
+                print(f"Machine {line_num+1}: No solution found.")
+
+    print(f"Processed {machines_processed} machines.")
+    print(f"Total fewest presses required: {total_min_presses}")
+
+solve_part_two('input.txt')

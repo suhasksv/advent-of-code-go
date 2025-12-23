@@ -1,0 +1,123 @@
+import sys
+import os
+
+# Increase recursion depth just in case the flood fill is deep
+sys.setrecursionlimit(200000)
+
+def solve_part_two(filename):
+    if not os.path.exists(filename):
+        print(f"Error: {filename} not found.")
+        return
+
+    # 1. Parse Input
+    points = []
+    with open(filename, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if ',' in line:
+                x, y = map(int, line.split(','))
+                points.append((x, y))
+
+    if not points:
+        print("No data found.")
+        return
+
+    # 2. Normalize Coordinates
+    # We shift everything so the top-leftmost point is at (1,1)
+    # This leaves a margin of 0s around the edge for our flood fill
+    min_x = min(x for x, y in points)
+    min_y = min(y for x, y in points)
+
+    shifted_points = [(x - min_x + 1, y - min_y + 1) for x, y in points]
+
+    # Determine Grid Size (Max coord + padding)
+    W = max(x for x, y in shifted_points) + 2
+    H = max(y for x, y in shifted_points) + 2
+
+    # 3. Create Grid and Draw Boundaries
+    # 0 = Empty, 1 = Boundary/Inside
+    grid = [[0] * W for _ in range(H)]
+
+    num_pts = len(shifted_points)
+    for i in range(num_pts):
+        p1 = shifted_points[i]
+        p2 = shifted_points[(i + 1) % num_pts] # Wrap around to start
+
+        # Draw line between p1 and p2
+        if p1[0] == p2[0]: # Vertical line
+            for y in range(min(p1[1], p2[1]), max(p1[1], p2[1]) + 1):
+                grid[y][p1[0]] = 1
+        else: # Horizontal line
+            for x in range(min(p1[0], p2[0]), max(p1[0], p2[0]) + 1):
+                grid[p1[1]][x] = 1
+
+    # 4. Flood Fill to identify the "Outside"
+    # We mark outside cells with 2.
+    queue = [(0, 0)]
+    grid[0][0] = 2 # Start at the padding corner
+
+    while queue:
+        cx, cy = queue.pop(0)
+        # Check 4 neighbors
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx, ny = cx + dx, cy + dy
+            if 0 <= nx < W and 0 <= ny < H:
+                # If it's 0, it's empty space we can flow into
+                if grid[ny][nx] == 0:
+                    grid[ny][nx] = 2
+                    queue.append((nx, ny))
+
+    # Now, convert grid to binary:
+    # If a cell is 2, it is OUTSIDE (Value 0).
+    # If a cell is 1 (Boundary) or 0 (Inside, never reached by flood), it is VALID (Value 1).
+    binary_grid = [[0] * W for _ in range(H)]
+    for y in range(H):
+        for x in range(W):
+            if grid[y][x] != 2:
+                binary_grid[y][x] = 1
+
+    # 5. Build Summed Area Table (SAT)
+    # sat[y][x] = sum of all valid cells in the rectangle from (0,0) to (x,y)
+    sat = [[0] * W for _ in range(H)]
+    for y in range(H):
+        for x in range(W):
+            val = binary_grid[y][x]
+            top = sat[y-1][x] if y > 0 else 0
+            left = sat[y][x-1] if x > 0 else 0
+            diag = sat[y-1][x-1] if (y > 0 and x > 0) else 0
+
+            sat[y][x] = val + top + left - diag
+
+    # 6. Find Largest Valid Rectangle
+    max_area = 0
+
+    for i in range(len(shifted_points)):
+        for j in range(i + 1, len(shifted_points)):
+            p1 = shifted_points[i]
+            p2 = shifted_points[j]
+
+            # Define the rectangle bounds
+            x1, x2 = min(p1[0], p2[0]), max(p1[0], p2[0])
+            y1, y2 = min(p1[1], p2[1]), max(p1[1], p2[1])
+
+            # Calculate what the area SHOULD be (width * height)
+            geom_area = (x2 - x1 + 1) * (y2 - y1 + 1)
+
+            # Calculate how many VALID tiles are actually in this area using SAT
+            # Formula: Total = BottomRight - TopRight - BottomLeft + TopLeft
+            D = sat[y2][x2]
+            B = sat[y1-1][x2]
+            C = sat[y2][x1-1]
+            A = sat[y1-1][x1-1]
+
+            actual_valid_count = D - B - C + A
+
+            # If the geometric area matches the valid tile count, the rectangle is solid valid
+            if actual_valid_count == geom_area:
+                if geom_area > max_area:
+                    max_area = geom_area
+
+    print(f"Processed grid size: {W}x{H}")
+    print(f"The largest valid area is: {max_area}")
+
+solve_part_two('input.txt')
