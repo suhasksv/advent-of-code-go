@@ -1,0 +1,143 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+// Parse a line like "{3,5,4} (1,3) (2)" into targets and button effects
+func parseLine(line string) ([]int, [][]int, bool) {
+	// Parse targets
+	targetRe := regexp.MustCompile(`\{([\d,]+)\}`)
+	tm := targetRe.FindStringSubmatch(line)
+	if tm == nil {
+		return nil, nil, false
+	}
+	targetStr := strings.Split(tm[1], ",")
+	targets := make([]int, len(targetStr))
+	for i, s := range targetStr {
+		v, _ := strconv.Atoi(s)
+		targets[i] = v
+	}
+
+	// Parse buttons
+	buttonRe := regexp.MustCompile(`\(([\d,]+)\)`)
+	buttonMatches := buttonRe.FindAllStringSubmatch(line, -1)
+	buttons := make([][]int, len(buttonMatches))
+	for i, bm := range buttonMatches {
+		parts := strings.Split(bm[1], ",")
+		btn := make([]int, len(parts))
+		for j, p := range parts {
+			v, _ := strconv.Atoi(p)
+			btn[j] = v
+		}
+		buttons[i] = btn
+	}
+
+	return targets, buttons, true
+}
+
+func solve(filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	totalMinPresses := 0
+	machinesProcessed := 0
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		targets, buttons, ok := parseLine(line)
+		if !ok {
+			continue
+		}
+
+		n := len(targets)
+		m := len(buttons)
+
+		// Build matrix of button effects
+		matrix := make([][]int, n)
+		for i := range matrix {
+			matrix[i] = make([]int, m)
+		}
+
+		// Compute max presses for each button to avoid overshooting
+		buttonLimits := make([]int, m)
+		for i := range buttonLimits {
+			buttonLimits[i] = 1 << 30
+		}
+
+		for col, btn := range buttons {
+			for _, r := range btn {
+				if r < n {
+					matrix[r][col] = 1
+					if targets[r] < buttonLimits[col] {
+						buttonLimits[col] = targets[r]
+					}
+				}
+			}
+		}
+
+		minPresses := 1 << 30
+
+		// Optimized DFS with pruning
+		counts := make([]int, n)
+		var dfs func(idx int, sum int)
+		dfs = func(idx int, sum int) {
+			if sum >= minPresses {
+				return // prune if sum already too big
+			}
+			if idx == m {
+				valid := true
+				for i := 0; i < n; i++ {
+					if counts[i] != targets[i] {
+						valid = false
+						break
+					}
+				}
+				if valid && sum < minPresses {
+					minPresses = sum
+				}
+				return
+			}
+
+			maxPress := buttonLimits[idx]
+			for v := 0; v <= maxPress; v++ {
+				// Update counts incrementally
+				for i := 0; i < n; i++ {
+					counts[i] += matrix[i][idx] * v
+				}
+				dfs(idx+1, sum+v)
+				for i := 0; i < n; i++ {
+					counts[i] -= matrix[i][idx] * v
+				}
+			}
+		}
+
+		dfs(0, 0)
+
+		if minPresses < 1<<30 {
+			totalMinPresses += minPresses
+			machinesProcessed++
+		}
+	}
+
+	fmt.Println("Processed", machinesProcessed, "machines")
+	fmt.Println("Total fewest presses:", totalMinPresses)
+}
+
+func main() {
+	solve("input.txt")
+}
